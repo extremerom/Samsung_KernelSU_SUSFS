@@ -194,7 +194,7 @@ jobs:
           cd "$CONFIG"
           chmod +x build_kernel_GKI.sh
           echo "Building the kernel..."
-          ./build_kernel_GKI.sh
+          LTO=thin ./build_kernel_GKI.sh
           
       - name: Prepare AnyKernel3
         run: |
