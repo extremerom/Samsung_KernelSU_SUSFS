@@ -208,6 +208,8 @@ jobs:
           #  exit 1
           #fi
 
+          cd "$CONFIG"
+          
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
             cp ./kernel_platform/sec/dist/Image AnyKernel3
           elif [[ "${{ inputs.branch }}" == "SM-A366B" ]]; then
