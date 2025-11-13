@@ -211,11 +211,10 @@ jobs:
           chmod +x build_kernel_GKI.sh
           echo "Building the kernel..."
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
-           # default LTO for bazel kernels
            ./build_kernel_GKI.sh
           else
-           # LTO thin for kernels NOT using bazel
-           LTO=thin ./build_kernel_GKI.sh
+          #temporarily using this until i can figure out the other phones build script issues
+           tools/bazel build --config=fast --lto=thin //common:kernel_aarch64_dist ||
           fi
           
       - name: Prepare AnyKernel3
@@ -234,16 +233,13 @@ jobs:
           
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
             cp ./kernel_platform/sec/dist/Image ../AnyKernel3/Image
-          elif [[ "${{ inputs.branch }}" == "SM-A366B" ]]; then
-            cp ./kernel_platform/gki/dist/Image ../AnyKernel3/Image
-          elif [[ "${{ inputs.branch }}" == "SM-X916B" ]]; then
-            cp ./kernel_platform/sec/dist/Image ../AnyKernel3/Image
-          elif [[ "${{ inputs.branch }}" == "SM-F946N" ]]; then
-            cp ./kernel_platform/sec/dist/Image ../AnyKernel3/Image
+          elif [[ -f ./$CONFIG/bazel-bin/common/kernel_aarch64/Image ]]; then
+            cp ./$CONFIG/bazel-bin/common/kernel_aarch64/Image ../AnyKernel3/Image
           else
             echo "Error: Image file not found in any expected location"
             exit 1
           fi
+
 
       - name: Create Bootimgs Folder and Copy Images for Android 14/15
         if: ${{ inputs.android_version == 'android14' || inputs.android_version == 'android15' }}
