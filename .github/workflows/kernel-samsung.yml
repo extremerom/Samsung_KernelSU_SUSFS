@@ -15,9 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-#          - branch: "SM-S928B-Oneui7"
-#            android_version: "android14"
-#            kernel_version: "6.1"
+          - branch: "SM-S928B-Oneui7"
+            android_version: "android14"
+            kernel_version: "6.1"
           - branch: "SM-S928B-Oneui8"
             android_version: "android14"
             kernel_version: "6.1"
