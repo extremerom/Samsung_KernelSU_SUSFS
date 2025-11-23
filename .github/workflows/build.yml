@@ -289,6 +289,8 @@ jobs:
             chmod +x build_kernel_GKI.sh
             LTO=thin ./build_kernel_GKI.sh || true
           elif [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y libyaml-dev
             LTO=thin ./build_kernel.sh || true
           else
             #temporarily using this until i can figure out the other phones build script issues
