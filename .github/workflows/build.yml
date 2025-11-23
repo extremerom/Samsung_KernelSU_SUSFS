@@ -280,14 +280,16 @@ jobs:
           set -e
           set -x
           cd "$CONFIG"
-          chmod +x build_kernel_GKI.sh
+          
           echo "Building the kernel..."
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
+            chmod +x build_kernel_GKI.sh
             ./build_kernel_GKI.sh
           elif [[ "${{ inputs.branch }}" == "SM-X916B" || "${{ inputs.branch }}" == "SM-F946N" ]]; then
+            chmod +x build_kernel_GKI.sh
             LTO=thin ./build_kernel_GKI.sh || true
           elif [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            LTO=thin ./build_kernel.sh
+            LTO=thin ./build_kernel.sh || true
           else
             #temporarily using this until i can figure out the other phones build script issues
             cd kernel_platform
