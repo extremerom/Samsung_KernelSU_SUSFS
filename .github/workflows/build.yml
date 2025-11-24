@@ -72,8 +72,29 @@ jobs:
       
       - name: Clone Kernel Source
         run: |
-          git clone https://github.com/WildKernels/Samsung_Kernels.git -b ${{ inputs.branch }} $CONFIG
+          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
+            git clone https://github.com/WildKernels/Samsung_Kernels.git -b ${{ inputs.branch }} $CONFIG
+            COMMON="$CONFIG"
+          else
+            git clone https://github.com/WildKernels/Samsung_Kernels.git -b ${{ inputs.branch }} $CONFIG
+            COMMON="$CONFIG/kernel_platform/common"
+          fi
+          echo "COMMON=$COMMON" >> $GITHUB_ENV
+          
+      - name: Set Path Environment Variables
+        run: |
+          ROOT="$GITHUB_WORKSPACE"
+          KERNEL_ROOT="$ROOT/$CONFIG"
+          SUSFS4KSU="$ROOT/susfs4ksu"
+          KERNEL_PATCHES="$ROOT/kernel_patches"
+          ANYKERNEL3="$ROOT/AnyKernel3"
 
+          echo "ROOT=$ROOT" >> $GITHUB_ENV
+          echo "KERNEL_ROOT=$KERNEL_ROOT" >> $GITHUB_ENV
+          echo "SUSFS4KSU=$SUSFS4KSU" >> $GITHUB_ENV
+          echo "KERNEL_PATCHES=$KERNEL_PATCHES" >> $GITHUB_ENV
+          echo "ANYKERNEL3=$ANYKERNEL3" >> $GITHUB_ENV
+          
       - name: Extract all tar.xz files and delete them
         run: |
          cd "$CONFIG"
@@ -96,21 +117,14 @@ jobs:
           du -BG -d 2 | sort -nr
 
       - name: Add KernelSU
+        working-directory: "$COMMON"
         run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG"
-          else
-            cd "$CONFIG/kernel_platform/common"
-          fi
           curl -LSs "https://raw.githubusercontent.com/WildKernels/Wild_KSU/wild/kernel/setup.sh" | bash -s wild
 
       - name: Getting KernelSU Version
+        working-directory: "$COMMON/Wild_KSU/kernel"
         run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG/Wild_KSU/kernel"
-          else
-            cd "$CONFIG/kernel_platform/common/Wild_KSU/kernel"
-          fi
+          
           BASE_VERSION=10200
           COMMIT_COUNT=$(/usr/bin/git rev-list --count HEAD)
           KSU_VERSION=$(expr $COMMIT_COUNT "+" $BASE_VERSION)
@@ -122,30 +136,18 @@ jobs:
           echo "✅ Updated KSU version to ${KSU_VERSION} in $MAKEFILE"
 
       - name: Apply SUSFS Patches for KernelSU Variants
+        working-directory: "$COMMON"
         run: |
-          cd "$CONFIG"
           
           # Apply compatibility fixes
           SUSFS_VERSION="1.5.12"
+          
+          cp "$SUSFS4KSU/kernel_patches/fs/*" ./fs/
+          cp "$SUSFS4KSU/kernel_patches/include/linux/*" ./include/linux/
 
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cp ../susfs4ksu/kernel_patches/fs/* ./fs/
-            cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
-          else
-            cp ../susfs4ksu/kernel_patches/fs/* ./kernel_platform/common/fs/
-            cp ../susfs4ksu/kernel_patches/include/linux/* ./kernel_platform/common/include/linux/
-          fi
 
           # Apply core SUSFS patches
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./
-          else
-            cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./kernel_platform/common/
-          fi
-          
-          if ! [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd kernel_platform/common
-          fi
+          cp "$SUSFS4KSU/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch" ./
           
 
           # Apply SUSFS core patch
@@ -153,24 +155,24 @@ jobs:
 
           # Fix SUSFS rejects
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
-            cp ../../../kernel_patches/samsung/S24U/* ./
+            cp "$KERNEL_PATCHES/samsung/S24U/*" ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
           elif [[ "${{ inputs.branch }}" == "SM-A366B" ]]; then
-            cp ../../../kernel_patches/samsung/${{ inputs.branch }}/* ./
+            cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/*" ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
             patch -p1 < fix_taskmmu.patch
           elif [[ "${{ inputs.branch }}" == "SM-X916B" ]]; then
-            cp ../../../kernel_patches/samsung/${{ inputs.branch }}/* ./
+            cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/*" ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
           elif [[ "${{ inputs.branch }}" == "SM-F946N" ]]; then
-            cp ../../../kernel_patches/samsung/${{ inputs.branch }}/* ./
+            cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/*" ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
           elif [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" ]]; then
-            cp ../kernel_patches/samsung/A54/* ./
+            cp "$KERNEL_PATCHES/samsung/A54/*" ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
             patch -p1 < Disable_CRC.patch
@@ -178,42 +180,23 @@ jobs:
 
           # Apply KSU integration patches
           cd Wild_KSU
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch .
+          
+            cp "$SUSFS4KSU/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" .
             patch -p1 < 10_enable_susfs_for_ksu.patch || true
           
-            cp ../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_core_hook.c.patch ./
+            cp "$KERNEL_PATCHES/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_core_hook.c.patch" ./
             patch -p1 < fix_core_hook.c.patch
 
-            cp ../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_sucompat.c.patch ./
+            cp "$KERNEL_PATCHES/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_sucompat.c.patch" ./
             patch -p1 < fix_sucompat.c.patch
 
-            cp ../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_kernel_compat.c.patch ./
+            cp "$KERNEL_PATCHES/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_kernel_compat.c.patch" ./
             patch -p1 < fix_kernel_compat.c.patch
-          else
-            cp ../../../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch .
-            patch -p1 < 10_enable_susfs_for_ksu.patch || true
-          
-            cp ../../../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_core_hook.c.patch ./
-            patch -p1 < fix_core_hook.c.patch
-
-            cp ../../../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_sucompat.c.patch ./
-            patch -p1 < fix_sucompat.c.patch
-
-            cp ../../../../kernel_patches/wild/susfs_fix_patches/v${SUSFS_VERSION}/fix_kernel_compat.c.patch ./
-            patch -p1 < fix_kernel_compat.c.patch
-          fi
-
 
       - name: Apply Hooks Patches
+        working-directory: "$COMMON"
         run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG"
-            cp ../kernel_patches/wild/hooks/scope_min_manual_hooks_v1.4.patch ./
-          else
-            cd "$CONFIG/kernel_platform/common"
-            cp ../../../kernel_patches/wild/hooks/scope_min_manual_hooks_v1.4.patch ./
-          fi          
+          cp "$KERNEL_PATCHES/wild/hooks/scope_min_manual_hooks_v1.4.patch" ./         
           
           if [[ "${{ inputs.branch }}" == "SM-A366B" || "${{ inputs.branch }}" == "SM-A546B-Oneui7" ]]; then
            patch -p1 < scope_min_manual_hooks_v1.4.patch || true
@@ -223,24 +206,15 @@ jobs:
           fi
 
       - name: Add BBG
-        run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG"
-          else
-            cd "$CONFIG/kernel_platform/common"            
-          fi 
-          
+        working-directory: "$COMMON"
+        run: |          
           echo "Adding BBG..."
           wget -O- https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
           sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/lockdown/lockdown,baseband_guard/ } }' security/Kconfig
 
       - name: Set Kernel Configuration Variables
+        working-directory: "$COMMON"
         run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG"
-          else
-            cd "$CONFIG/kernel_platform/common"            
-          fi 
           
           echo "Initializing kernel configuration..."
           patch -p1 < config.patch
@@ -249,12 +223,8 @@ jobs:
           sed -i 's/check_defconfig//' ./build.config.gki
 
       - name: Change Kernel Name
+        working-directory: "$COMMON"
         run: |
-          if [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cd "$CONFIG"
-          else
-            cd "$CONFIG/kernel_platform/common"            
-          fi
           
           #Add Wild to Kernel Version
           sed -i '$s|echo "\$res"|echo "\$res-Wild"|' ./scripts/setlocalversion
@@ -276,10 +246,10 @@ jobs:
           echo "FILE_NAME=$ARTIFACT_BASE" >> $GITHUB_ENV
 
       - name: Build
+        working-directory: "$KERNEL_ROOT"
         run : |
           set -e
           set -x
-          cd "$CONFIG"
           
           echo "Building the kernel..."
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
@@ -299,6 +269,7 @@ jobs:
           fi
           
       - name: Prepare AnyKernel3
+        working-directory: "$KERNEL_ROOT"
         run: |
           # Copy Image from normal build locations
           #if [ -f "./$CONFIG/out/${{ inputs.android_version }}-${{ inputs.kernel_version }}/dist/Image" ]; then
@@ -309,17 +280,15 @@ jobs:
           #  echo "Error: Image file not found in any expected location"
           #  exit 1
           #fi
-
-          cd "$CONFIG"
           
           if [[ "${{ inputs.branch }}" == "SM-S928B-Oneui7" || "${{ inputs.branch }}" == "SM-S928B-Oneui8" ]]; then
-            cp ./kernel_platform/sec/dist/Image ../AnyKernel3/Image
+            cp ./kernel_platform/sec/dist/Image "$ANYKERNEL3/Image"
           elif [[ -f ./$CONFIG/bazel-bin/common/kernel_aarch64/Image ]]; then
-            cp ./$CONFIG/bazel-bin/common/kernel_aarch64/Image ../AnyKernel3/Image
+            cp ./$CONFIG/bazel-bin/common/kernel_aarch64/Image "$ANYKERNEL3/Image"
           elif [[ "${{ inputs.branch }}" == "SM-X916B" || "${{ inputs.branch }}" == "SM-F946N" ]]; then
-            cp ./out/msm-kalama-kalama-gki/dist/Image ../AnyKernel3/Image
+            cp ./out/msm-kalama-kalama-gki/dist/Image "$ANYKERNEL3/Image"
           elif [[ "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A546E-Oneui7" ]]; then
-            cp ./arch/arm64/boot/Image ../AnyKernel3/Image
+            cp ./arch/arm64/boot/Image "$ANYKERNEL3/Image"
           else
             echo "Error: Image file not found in any expected location"
             exit 1
