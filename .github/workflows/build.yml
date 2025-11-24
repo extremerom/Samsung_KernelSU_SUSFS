@@ -73,6 +73,7 @@ jobs:
       - name: Clone Kernel Source
         run: |
             git clone https://github.com/WildKernels/Samsung_Kernels.git -b ${{ inputs.branch }} $CONFIG
+            chmod -R 777 "$CONFIG"
   
       - name: Set Path Environment Variables
         run: |
