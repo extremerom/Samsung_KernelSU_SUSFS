@@ -268,6 +268,7 @@ jobs:
             sudo apt-get install -y libyaml-dev
             LTO=thin ./build_kernel.sh || true
           elif [[ "${{ inputs.branch }}" == "SM-A566B" ]]; then
+            chmod +x build_script.sh
             ./build_script.sh
           else
             #temporarily using this until i can figure out the other phones build script issues
