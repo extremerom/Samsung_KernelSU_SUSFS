@@ -205,7 +205,7 @@ jobs:
           cd "$COMMON"
           cp "$KERNEL_PATCHES/wild/hooks/scope_min_manual_hooks_v1.4.patch" ./         
           
-          if [[ "${{ inputs.branch }}" == "SM-A366B" || "${{ inputs.branch }}" == "SM-A546B-Oneui7" ]]; then
+          if [[ "${{ inputs.branch }}" == "SM-A366B" || "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A566B" ]]; then
            patch -p1 < scope_min_manual_hooks_v1.4.patch || true
           else
            patch -p1 < scope_min_manual_hooks_v1.4.patch || true
