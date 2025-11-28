@@ -269,7 +269,8 @@ jobs:
             LTO=thin ./build_kernel.sh || true
           elif [[ "${{ inputs.branch }}" == "SM-A566B" ]]; then
             chmod +x build_script.sh
-            touch abi_symbollist.raw abi_symbollist
+            touch "$COMMON/abi_symbollist.raw"
+            touch "$COMMON/abi_symbollist"
             ./build_script.sh
           else
             #temporarily using this until i can figure out the other phones build script issues
