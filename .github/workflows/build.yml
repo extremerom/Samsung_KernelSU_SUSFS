@@ -86,6 +86,8 @@ jobs:
             COMMON="$CONFIG"
           elif [[ "${{ inputs.branch }}" == "SM-A566B" ]]; then
             COMMON="$CONFIG/kernel-6.6"
+          elif [[ "${{ inputs.branch }}" == "SM-S926B-Oneui8" ]]; then
+            COMMON="$CONFIG/kernel"
           else
             COMMON="$CONFIG/kernel_platform/common"
           fi
@@ -183,8 +185,12 @@ jobs:
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
             patch -p1 < fix_taskmmu.patch
-           elif [[ "${{ inputs.branch }}" == "SM-S916B-Oneui8" ]]; then
-             cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/"* ./
+          elif [[ "${{ inputs.branch }}" == "SM-S916B-Oneui8" ]]; then
+            cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/"* ./
+            patch -p1 < fix_namespace.patch
+            patch -p1 < fix_base.patch
+          elif [[ "${{ inputs.branch }}" == "SM-S926B-Oneui8" ]]; then
+            cp "$KERNEL_PATCHES/samsung/${{ inputs.branch }}/"* ./
             patch -p1 < fix_namespace.patch
             patch -p1 < fix_base.patch
           fi
@@ -209,7 +215,7 @@ jobs:
           cd "$COMMON"
           cp "$KERNEL_PATCHES/wild/hooks/scope_min_manual_hooks_v1.4.patch" ./         
           
-          if [[ "${{ inputs.branch }}" == "SM-A366B" || "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A566B" ]]; then
+          if [[ "${{ inputs.branch }}" == "SM-A366B" || "${{ inputs.branch }}" == "SM-A546B-Oneui7" || "${{ inputs.branch }}" == "SM-A566B" || "${{ inputs.branch }}" == "SM-S916B-Oneui8" ]]; then
            patch -p1 < scope_min_manual_hooks_v1.4.patch || true
           else
            patch -p1 < scope_min_manual_hooks_v1.4.patch || true
@@ -276,6 +282,8 @@ jobs:
             touch ./kernel-6.6/abi_symbollist.raw
             touch ./kernel-6.6/abi_symbollist
             ./build_script.sh
+          elif [[ "${{ inputs.branch }}" == "SM-S926B-Oneui8" ]]; then
+            tools/bazel run --nocheck_bzl_visibility --config=stamp --sandbox_debug --verbose_failures --debug_make_verbosity=I //projects/s5e9945:s5e9945_user_dist
           else
             #temporarily using this until i can figure out the other phones build script issues
             cd kernel_platform
@@ -305,6 +313,8 @@ jobs:
             cp ./arch/arm64/boot/Image "$ANYKERNEL3/Image"
           elif [[ "${{ inputs.branch }}" == "SM-A566B" ]]; then
             cp ./kernel-6.6/out/arch/arm64/boot/Image "$ANYKERNEL3/Image"
+          elif [[ "${{ inputs.branch }}" == "SM-S926B-Oneui8" ]]; then
+            cp ./out/s5e9945_user/dist/Image "$ANYKERNEL3/Image"
           else
             echo "Error: Image file not found in any expected location"
             exit 1
