@@ -42,6 +42,9 @@ jobs:
           - branch: "SM-S916B-Oneui8"
             android_version: "android13"
             kernel_version: "5.15"
+          - branch: "SM-S926B-Oneui8"
+            android_version: "android14"
+            kernel_version: "6.1"
 
     uses: ./.github/workflows/build.yml
     secrets: inherit
