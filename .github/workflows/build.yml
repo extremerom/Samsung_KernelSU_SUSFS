@@ -19,27 +19,11 @@ on:
 jobs:
   build-samsung-gki:
     name: "${{ inputs.branch }}-${{ inputs.kernel_version }}-${{ inputs.android_version }}"
-    runs-on: ubuntu-latest
+    runs-on: kernel
     strategy:
       fail-fast: false
 
     steps:
-      - name: Check Initial Disk Space
-        run: |
-          echo "===== Initial Total Disk Space in GB ====="
-          df -BG
-          
-      - name: Download Apache Arrow's util_free_space.sh
-        run: |
-          curl -L -o util_free_space.sh https://raw.githubusercontent.com/apache/arrow/main/ci/scripts/util_free_space.sh
-          chmod +x util_free_space.sh
-          ./util_free_space.sh
-          
-      - name: Check Disk Space After Cleanup
-        run: |
-          echo "===== Total Disk Space After Cleanup in GB ====="
-          df -BG
-          
       - name: Set CONFIG Environment Variable
         run: |
           # Set CONFIG dynamically based on inputs values
